@@ -15,7 +15,7 @@ bun run dev          # http://localhost:5173
 
 ```bash
 bun alchemy login    # one-time CF auth
-bun run deploy       # alchemy deploy → Workers
+bun run deploy       # alchemy.run.ts via tsx → Workers
 bun run destroy      # tear down
 ```
 
@@ -141,7 +141,7 @@ bun run dev                  # Vite dev server (:5173)
 bun run build                # static build → build/
 bun run serve                # serve build/ (:8080)
 bun run serve 3000            # custom port
-bun run deploy               # alchemy deploy
-bun run destroy              # alchemy destroy
+bun run deploy               # alchemy.run.ts via tsx (bun segfaults running alchemy)
+bun run destroy              # same, --destroy
 bun run check                # svelte-check type checking
 ```

@@ -1,17 +1,26 @@
 import alchemy from "alchemy";
-import { SvelteKit, R2Bucket, D1Database } from "alchemy/cloudflare";
+import { Website, R2Bucket, D1Database } from "alchemy/cloudflare";
 import { GitHubComment } from "alchemy/github";
 
 /**
  * Alchemy IaC — deploys the SvelteKit PWA to Cloudflare Workers.
  *
- * Tier 1 (Static SPA): SvelteKit() with adapter-static build output.
- * Tier 3 (Workers SSR): SvelteKit() with alchemy/cloudflare/sveltekit adapter.
+ * Tier 1 (Static SPA, the default): Website() serving the adapter-static
+ *   build/ output. No server entrypoint, so wrangler.jsonc generation is off.
+ * Tier 3 (Workers SSR): swap Website() for SvelteKit() (same props minus
+ *   assets/spa/wrangler) and the adapter in svelte.config.js — SvelteKit()
+ *   expects the adapter-cloudflare output at .svelte-kit/cloudflare.
  *
  * Usage:
  *   bun alchemy login          # one-time CF auth
- *   bun run deploy             = alchemy deploy
- *   bun run destroy            = alchemy destroy
+ *   bun run deploy             # runs this file via tsx (see note below)
+ *   bun run destroy            # same, with --destroy
+ *
+ * Notes:
+ *   - `alchemy deploy` is not a CLI subcommand (alchemy 0.35) — deploying
+ *     means executing this file. Bun 1.3.x segfaults running it, so the
+ *     package scripts go through `bun x tsx` (node).
+ *   - The app scope exposes `appName`, not `name`.
  *
  * Bindings (R2, D1) are typed — import from this file for runtime types:
  *   import type { website } from "../alchemy.run.ts";
@@ -20,25 +29,29 @@ import { GitHubComment } from "alchemy/github";
 
 const app = await alchemy("cf-pwa-template");
 
-// --- Optional resources (uncomment for Tier 2/3) ---
+// --- Optional resources (remove if Tier 1 static is all you need) ---
 
 // R2 bucket for file storage
 const bucket = await R2Bucket("bucket", {
-  name: `${app.name}-${app.stage}-storage`,
+  name: `${app.appName}-${app.stage}-storage`,
   allowPublicAccess: false,
   adopt: true,
 });
 
 // D1 database for structured data
 const database = await D1Database("database", {
-  name: `${app.name}-${app.stage}-db`,
+  name: `${app.appName}-${app.stage}-db`,
   adopt: true,
 });
 
 // --- Deploy the SvelteKit app ---
 
-export const website = await SvelteKit("website", {
-  name: `${app.name}-${app.stage}`,
+export const website = await Website("website", {
+  name: `${app.appName}-${app.stage}`,
+  command: "bun run build",
+  assets: "build",
+  spa: true,
+  wrangler: false, // no server entrypoint — wrangler.jsonc generation requires one
   bindings: {
     BUCKET: bucket,
     DB: database,

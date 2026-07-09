@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "serve": "bun run scripts/serve.ts",
-    "deploy": "alchemy deploy",
-    "destroy": "alchemy destroy",
+    "deploy": "bun x tsx ./alchemy.run.ts",
+    "destroy": "bun x tsx ./alchemy.run.ts --destroy",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "prepare": "svelte-kit sync || echo ''"
