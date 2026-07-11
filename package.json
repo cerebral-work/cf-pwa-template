@@ -20,6 +20,7 @@
     "@sveltejs/kit": "^2.63.0",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
     "alchemy": "^0.35.0",
+    "miniflare": "^4.20250803.0",
     "svelte": "^5.56.1",
     "svelte-check": "^4.6.0",
     "typescript": "^5.9.0",
