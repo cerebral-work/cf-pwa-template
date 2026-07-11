@@ -1,14 +1,19 @@
-// Service worker — app-shell precache with API bypass.
-// Cache-first for static assets, network-first for everything else.
-// NEVER cache /api/* (requires live session — files-portal pattern).
+// Service Worker — cache-first ONLY for content-hashed immutable assets.
+//
+// Never cache the shell or navigations: the shell's chunk references change
+// every deploy, and if the app sits behind an auth gate (Cloudflare Access),
+// the gate must see navigations to manage the session. A shell-caching
+// worker blanks every returning visitor after the first redeploy (stale
+// shell → purged chunk hashes → SPA fallback answers the JS request with
+// index.html 200 → MIME failure) and, behind Access, can wedge the client
+// permanently (expired session → sw.js update fetch 302s → update rejected).
+//
+// Bump CACHE whenever this file's logic changes.
 
-const CACHE = "cf-pwa-v1";
-const PRECACHE = ["/", "/index.html", "/manifest.json", "/icons/icon.svg"];
+const CACHE = "cf-pwa-v2";
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting())
-  );
+self.addEventListener("install", () => {
+  self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
@@ -21,20 +26,27 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
+  if (url.origin !== location.origin) return;
 
-  // Never intercept /api/* — requires live session
-  if (url.pathname.startsWith("/api/")) return;
+  const immutable =
+    url.pathname.startsWith("/_app/immutable/") ||
+    url.pathname.startsWith("/icons/") ||
+    url.pathname === "/manifest.json";
+  if (!immutable) return; // shell, data, /api/* — network, always
 
   e.respondWith(
     caches.match(e.request).then((cached) => {
       if (cached) return cached;
       return fetch(e.request).then((resp) => {
-        if (resp.status === 200 && resp.type === "basic") {
+        // Guard against SPA-fallback poisoning: a missing asset returns the
+        // HTML shell with 200 — never cache text/html here.
+        const ct = resp.headers.get("content-type") || "";
+        if (resp.ok && resp.type === "basic" && !ct.includes("text/html")) {
           const clone = resp.clone();
           caches.open(CACHE).then((c) => c.put(e.request, clone));
         }
         return resp;
-      }).catch(() => caches.match("/index.html"));
+      });
     })
   );
 });

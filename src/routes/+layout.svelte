@@ -1,4 +1,8 @@
 <script lang="ts">
+  // Global styles: import from the script block (Vite applies them globally).
+  // Do NOT move this into a <style> @import — Svelte scopes element selectors
+  // to this component and child routes lose typography/colors (see styles.css).
+  import "$lib/styles.css";
   import { setContext } from "svelte";
 
   let { children } = $props();
@@ -25,31 +29,3 @@
 </svelte:head>
 
 {@render children()}
-
-<style>
-  :root {
-    --bg: #0a0a0a;
-    --surface: #141414;
-    --surface2: #1a1a1a;
-    --border: #2a2a2a;
-    --text: #e0e0e0;
-    --text-dim: #888;
-    --accent: #4dcc7a;
-    --accent-dim: #2a6b42;
-    --red: #e74c3c;
-    --yellow: #f1c40f;
-    --blue: #3498db;
-  }
-  :global(*) {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  :global(html, body) {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "SF Mono", "JetBrains Mono", "Fira Code", monospace;
-    font-size: 14px;
-    line-height: 1.5;
-  }
-</style>
